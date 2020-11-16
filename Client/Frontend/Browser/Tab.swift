@@ -440,8 +440,8 @@ class Tab: NSObject {
         webView.customUserAgent = desktopMode ? UserAgent.desktop : UserAgent.mobile
     }
 
-    func addContentScript(_ helper: TabContentScript, name: String) {
-        contentScriptManager.addContentScript(helper, name: name, forTab: self)
+    func addContentScript(_ helper: TabContentScript, name: String, sandboxed: Bool) {
+        contentScriptManager.addContentScript(helper, name: name, forTab: self, sandboxed: Bool)
     }
 
     func getContentScript(name: String) -> TabContentScript? {
@@ -597,7 +597,7 @@ private class TabContentScriptManager: NSObject, WKScriptMessageHandler {
         }
     }
 
-    func addContentScript(_ helper: TabContentScript, name: String, forTab tab: Tab) {
+    func addContentScript(_ helper: TabContentScript, name: String, forTab tab: Tab, sandboxed: Bool) {
         if let _ = helpers[name] {
             assertionFailure("Duplicate helper added: \(name)")
         }
@@ -607,7 +607,11 @@ private class TabContentScriptManager: NSObject, WKScriptMessageHandler {
         // If this helper handles script messages, then get the handler name and register it. The Tab
         // receives all messages and then dispatches them to the right TabHelper.
         if let scriptMessageHandlerName = helper.scriptMessageHandlerName() {
-            tab.webView?.configuration.userContentController.add(self, name: scriptMessageHandlerName)
+            if #available(iOS 14.0, *), sandboxed {
+                tab.webView?.configuration.userContentController.addInDefaultContentWorld(scriptMessageHandler: self, name: scriptMessageHandlerName)
+            } else {
+                tab.webView?.configuration.userContentController.add(self, name: scriptMessageHandlerName)
+            }
         }
     }
 

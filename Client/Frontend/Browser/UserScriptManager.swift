@@ -102,10 +102,18 @@ class UserScriptManager {
             if let path = Bundle.main.path(forResource: name, ofType: "js"),
                 let source = try? NSString(contentsOfFile: path, encoding: String.Encoding.utf8.rawValue) as String {
                 let wrappedSource = "(function() { const SECURITY_TOKEN = '\(UserScriptManager.securityToken)'; \(source) })()"
-                return WKUserScript(source: wrappedSource, injectionTime: injectionTime, forMainFrameOnly: mainFrameOnly)
+                return WKUserScript.createInDefaultContentWorld(source: wrappedSource, injectionTime: injectionTime, forMainFrameOnly: mainFrameOnly)
             }
             return nil
         }
+    }()
+    
+    private let userAgentUserScript: WKUserScript? = {
+        guard let path = Bundle.main.path(forResource: "BraveGetUA", ofType: "js"), let source = try? String(contentsOfFile: path) else {
+            log.error("Failed to load fingerprinting protection user script")
+            return nil
+        }
+        return WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: false)
     }()
     
     private let fingerprintingProtectionUserScript: WKUserScript? = {

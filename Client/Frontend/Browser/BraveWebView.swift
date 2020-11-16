@@ -54,10 +54,16 @@ class BraveWebView: WKWebView {
         return "\(functionName)(\(argsJS))"
     }
 
-    func evaluateSafeJavascript(functionName: String, args: [Any], completion: @escaping ((Any?, Error?) -> Void)) {
+    func evaluateSafeJavascript(functionName: String, args: [Any], sandboxed: bool, completion: @escaping ((Any?, Error?) -> Void)) {
         let javascript = generateJavascriptFunctionString(functionName: functionName, args: args)
-        evaluateJavaScript(javascript) { data, error  in
-            completion(data, error)
+        if #available(iOS 14.0, *), sandboxed {
+            evaluateJavaScript(javascript, in: .defaultClient) { data, error  in
+                completion(data, error)
+            }
+        } else {
+            evaluateJavaScript(javascript) { data, error  in
+                completion(data, error)
+            }
         }
     }
 }
